@@ -1,0 +1,27 @@
+# Model weights (too large for GitHub)
+*.h5
+*.pt
+*.keras
+
+# Dataset
+*.zip
+dataset/
+yolo_data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+env/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/
