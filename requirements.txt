@@ -1,7 +1,6 @@
-opencv-python-headless
-streamlit
-tensorflow==2.18.0
-numpy
-pillow
-huggingface_hub
+opencv-python-headless==4.8.1.78
 ultralytics
+numpy
+Pillow
+huggingface-hub
+streamlit
