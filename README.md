@@ -79,5 +79,5 @@ The app loads both models and lets you upload an MRI scan to get predictions fro
 
 - Python, TensorFlow, Keras
 - PyTorch, Ultralytics YOLOv8
-- Streamlit
+- Streamlit = https://early-dementia-detection-lbbyrgmjx2xa945rpmu9js.streamlit.app/
 - scikit-learn, pandas, numpy, matplotlib
