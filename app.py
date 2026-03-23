@@ -1,8 +1,9 @@
+import os
 import streamlit as st
 import numpy as np
 from PIL import Image
-import tempfile, os
-from tensorflow.keras.models import load_model
+import tempfile
+from huggingface_hub import hf_hub_download
 from ultralytics import YOLO
 
 # ── Page config ──────────────────────────────────────────────────────────
@@ -12,8 +13,10 @@ st.set_page_config(
     layout="centered"
 )
 
+# ── Hugging Face repo — replace with your actual username ─────────────────
+HF_REPO = "YOUR_HF_USERNAME/dementia-detection-models"
+
 # ── Class labels ─────────────────────────────────────────────────────────
-# CNN order (matches training in Dementia.ipynb)
 CNN_CLASSES = [
     "Non Demented",
     "Very Mild Dementia",
@@ -21,11 +24,10 @@ CNN_CLASSES = [
     "Moderate Dementia"
 ]
 
-# YOLO trains alphabetically — remap to CNN order
-# YOLO: 0=Mild, 1=Moderate, 2=Non Demented, 3=Very mild
+# YOLO sorts alphabetically: 0=Mild, 1=Moderate, 2=Non Demented, 3=Very mild
+# Remap to CNN order:        2      3              0               1
 YOLO_TO_CNN = {0: 2, 1: 3, 2: 0, 3: 1}
 
-# Severity colors
 CLASS_COLORS = {
     "Non Demented":       "#2ecc71",
     "Very Mild Dementia": "#f1c40f",
@@ -33,13 +35,19 @@ CLASS_COLORS = {
     "Moderate Dementia":  "#e74c3c"
 }
 
-# ── Load models (cached so they only load once) ───────────────────────────
+# ── Load models (cached — only downloads once per session) ────────────────
 @st.cache_resource
 def load_cnn():
-    import tensorflow as tf
-    from tensorflow.keras.layers import Dense, Conv2D, BatchNormalization, MaxPooling2D, Dropout, Flatten
+    from tensorflow.keras.models import load_model
+    from tensorflow.keras.layers import Dense, Conv2D
 
-    # Strip unknown quantization_config argument that newer Keras added
+    with st.spinner("Downloading CNN model from Hugging Face..."):
+        model_path = hf_hub_download(
+            repo_id=HF_REPO,
+            filename="dementia_detection_model_final.h5"
+        )
+
+    # Handle Keras version mismatch (quantization_config argument)
     class CompatDense(Dense):
         def __init__(self, *args, **kwargs):
             kwargs.pop('quantization_config', None)
@@ -51,27 +59,28 @@ def load_cnn():
             super().__init__(*args, **kwargs)
 
     return load_model(
-        "dementia_detection_model_final.h5",
-        custom_objects={
-            'Dense': CompatDense,
-            'Conv2D': CompatConv2D
-        }
+        model_path,
+        custom_objects={'Dense': CompatDense, 'Conv2D': CompatConv2D}
     )
 
 @st.cache_resource
 def load_yolo():
-    return YOLO("best.pt")
+    with st.spinner("Downloading YOLO model from Hugging Face..."):
+        model_path = hf_hub_download(
+            repo_id=HF_REPO,
+            filename="best.pt"
+        )
+    return YOLO(model_path)
 
 cnn_model  = load_cnn()
 yolo_model = load_yolo()
 
-# ── Preprocess for CNN ────────────────────────────────────────────────────
+# ── Preprocessing ─────────────────────────────────────────────────────────
 def preprocess_for_cnn(pil_image):
     img = pil_image.resize((128, 128)).convert("RGB")
     arr = np.array(img, dtype=np.float32) / 255.0
     return np.expand_dims(arr, axis=0)
 
-# ── YOLO inference (needs a temp file path) ───────────────────────────────
 def predict_yolo(pil_image):
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
         pil_image.save(tmp.name)
@@ -101,18 +110,16 @@ if uploaded_file is not None:
     st.divider()
 
     with st.spinner("Running inference..."):
-        # CNN prediction
         arr           = preprocess_for_cnn(img)
         cnn_probs     = cnn_model.predict(arr, verbose=0)[0]
         cnn_class_idx = int(np.argmax(cnn_probs))
         cnn_conf      = float(np.max(cnn_probs))
         cnn_label     = CNN_CLASSES[cnn_class_idx]
 
-        # YOLO prediction
         yolo_class_idx, yolo_conf = predict_yolo(img)
         yolo_label = CNN_CLASSES[yolo_class_idx]
 
-    # ── Results side by side ─────────────────────────────────────────────
+    # ── Results side by side ──────────────────────────────────────────────
     st.subheader("Model Predictions")
     col1, col2 = st.columns(2)
 
@@ -157,7 +164,7 @@ if uploaded_file is not None:
 with st.sidebar:
     st.header("About")
     st.write(
-        "This app classifies brain MRI scans into four Alzheimer's severity "
+        "Classifies brain MRI scans into four Alzheimer's severity "
         "stages using two independently trained models."
     )
     st.write("**Severity stages:**")
@@ -167,7 +174,7 @@ with st.sidebar:
             unsafe_allow_html=True
         )
     st.divider()
-    st.write("**CNN:** Custom 6-block architecture, 4.46M params")
+    st.write("**CNN:** Custom 6-block, 4.46M params")
     st.write("**YOLO:** YOLOv8n-cls, 1.44M params")
     st.write("**Dataset:** OASIS — 86,437 MRI scans")
-    st.write("**Input size:** 128×128 RGB")
+    st.write("**Benchmark agreement:** 77.46%")

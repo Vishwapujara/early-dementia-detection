@@ -3,3 +3,4 @@ tensorflow
 ultralytics
 numpy
 pillow
+huggingface_hub
