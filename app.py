@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # ── Hugging Face repo — replace with your actual username ─────────────────
-HF_REPO = "YOUR_HF_USERNAME/dementia-detection-models"
+HF_REPO = "Vishwapujara/dementia-detection-models"
 
 # ── Class labels ─────────────────────────────────────────────────────────
 CNN_CLASSES = [
