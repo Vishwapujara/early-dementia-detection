@@ -62,11 +62,16 @@ def patient_level_split(df, test_size=0.20, val_size=0.10, random_state=42):
       - < 6 patients: exactly 1 patient goes to test, 1 to val, the rest
         to train.
       - otherwise: the normal `test_size`/`val_size` patient-level split.
+
+    Patient IDs are sorted before splitting so the result is deterministic
+    given `random_state`, independent of filesystem/OS directory-listing
+    order. This is what lets `spark_pipeline`'s split be verified as
+    identical to this one (see `scripts/verify_pipeline_parity.py`).
     """
     train_pats, val_pats, test_pats = [], [], []
 
     for category in CATEGORIES:
-        cat_patients = df[df['category'] == category]['patient_id'].unique()
+        cat_patients = sorted(df[df['category'] == category]['patient_id'].unique())
         n = len(cat_patients)
 
         if n <= 2:

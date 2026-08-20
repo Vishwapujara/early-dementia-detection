@@ -5,3 +5,4 @@ tensorflow==2.18.0
 pillow
 huggingface_hub
 ultralytics
+pyspark==3.5.3
