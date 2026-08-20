@@ -19,6 +19,9 @@ env/
 # Jupyter checkpoints
 .ipynb_checkpoints/
 
+# Local-only reference notebook (real Colab run with actual outputs, kept out of git)
+notebooks/yolo_benchmark_original_run.ipynb
+
 # OS
 .DS_Store
 Thumbs.db
