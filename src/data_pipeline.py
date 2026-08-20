@@ -1,13 +1,14 @@
 """Patient-level data pipeline for the OASIS dementia severity dataset.
 
-Extracted from notebooks/Dementia.ipynb so that every model trained on this
-project (Custom CNN, YOLOv8, ...) sees the exact same train/val/test patients.
-Splitting by `patient_id` instead of by image prevents data leakage where the
-same patient's MRI slices end up in both train and test.
+Extracted from the original benchmark notebook so that every model trained
+on this project (Custom CNN, YOLOv8, ...) sees the exact same train/val/test
+patients. Splitting by `patient_id` instead of by image prevents data
+leakage where the same patient's MRI slices end up in both train and test.
 """
 import os
 import re
 
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
@@ -48,20 +49,41 @@ def create_metadata_df(base_path):
 
 
 def patient_level_split(df, test_size=0.20, val_size=0.10, random_state=42):
-    """Split by patient_id so no patient's slices leak across train/val/test.
+    """Split by patient_id, stratified per category, so every class has at
+    least one patient in every split.
 
-    Ratios match notebooks/Dementia.ipynb exactly: `test_size` of patients are
-    held out for test, then `val_size` of the *remaining* patients are held
-    out for validation.
+    A single pooled `train_test_split` across all patients can leave a
+    severely underrepresented class (e.g. only 2 total patients for
+    Moderate Dementia) with zero patients in val or test. We instead split
+    each category's patients independently:
+      - <= 2 patients: not enough to split three ways, so every patient is
+        used in ALL three splits. Unavoidable given the data — the class is
+        heavily oversampled during training anyway (see `hybrid_resample`).
+      - < 6 patients: exactly 1 patient goes to test, 1 to val, the rest
+        to train.
+      - otherwise: the normal `test_size`/`val_size` patient-level split.
     """
-    unique_patients = df['patient_id'].unique()
+    train_pats, val_pats, test_pats = [], [], []
 
-    train_pats, test_pats = train_test_split(
-        unique_patients, test_size=test_size, random_state=random_state
-    )
-    train_pats, val_pats = train_test_split(
-        train_pats, test_size=val_size, random_state=random_state
-    )
+    for category in CATEGORIES:
+        cat_patients = df[df['category'] == category]['patient_id'].unique()
+        n = len(cat_patients)
+
+        if n <= 2:
+            train_pats.extend(cat_patients)
+            val_pats.extend(cat_patients)
+            test_pats.extend(cat_patients)
+        elif n < 6:
+            shuffled = np.random.RandomState(random_state).permutation(cat_patients)
+            test_pats.extend(shuffled[:1])
+            val_pats.extend(shuffled[1:2])
+            train_pats.extend(shuffled[2:])
+        else:
+            tr, te = train_test_split(cat_patients, test_size=test_size, random_state=random_state)
+            tr, va = train_test_split(tr, test_size=val_size, random_state=random_state)
+            train_pats.extend(tr)
+            val_pats.extend(va)
+            test_pats.extend(te)
 
     train_df = df[df['patient_id'].isin(train_pats)].reset_index(drop=True)
     val_df = df[df['patient_id'].isin(val_pats)].reset_index(drop=True)

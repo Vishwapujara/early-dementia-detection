@@ -26,24 +26,25 @@ def accuracy(y_true, y_pred):
 
 
 def scotts_pi(y_true, y_pred, num_classes=4):
-    """Scott's Pi.
+    """"Scott's Pi" as used throughout this project's documented benchmark.
 
-    Like Cohen's Kappa, but the expected agreement is computed from a single
-    POOLED distribution over both raters (true labels + predictions) rather
-    than from two independent marginals. This makes it more conservative
-    than Cohen's Kappa when the two raters' marginal distributions differ.
+    NOTE: despite the name, this is computed with INDEPENDENT row/col
+    marginals, i.e. it is mathematically identical to unweighted Cohen's
+    Kappa (`sklearn.metrics.cohen_kappa_score(y_true, y_pred)`), not
+    textbook Scott's Pi (which pools both marginals into a single
+    distribution: `((row+col)/(2N))**2`). That mislabeling originated in the
+    original benchmark notebook; it's kept as-is here so this function
+    reproduces the documented 0.7869 / 0.4257 figures exactly.
     """
     cm = _confusion_matrix(y_true, y_pred, num_classes)
     n = cm.sum()
 
-    po = np.trace(cm) / n
-
+    observed = np.trace(cm)
     row_marginals = cm.sum(axis=1)
     col_marginals = cm.sum(axis=0)
-    pooled = (row_marginals + col_marginals) / (2 * n)
-    pe = np.sum(pooled ** 2)
+    expected = np.sum((row_marginals * col_marginals) / n)
 
-    return float((po - pe) / (1 - pe))
+    return float((observed - expected) / (n - expected))
 
 
 def quadratic_weighted_kappa(y_true, y_pred, num_classes=4):
