@@ -14,8 +14,13 @@ Ordinal classification of Alzheimer's severity stages using a custom CNN and YOL
 ## Project Structure
 
 ```
-├── Dementia.ipynb            # CNN training notebook (Google Colab)
-├── yolo_benchmark.ipynb      # YOLOv8 training + benchmark notebook
+├── notebooks/
+│   ├── Dementia.ipynb        # CNN training notebook (Google Colab)
+│   └── yolo_benchmark.ipynb  # YOLOv8 training + benchmark notebook
+├── src/
+│   ├── data_pipeline.py      # Metadata extraction, patient-level splitting, resampling
+│   └── evaluate.py           # Scott's Pi / Quadratic Weighted Kappa metrics
+├── models/                   # best.pt, dementia_detection_model_final.h5 (not tracked, see note below)
 ├── app.py                    # Streamlit web app
 ├── requirements.txt          # Dependencies
 └── README.md
@@ -73,7 +78,7 @@ streamlit run app.py
 
 The app loads both models and lets you upload an MRI scan to get predictions from both models side by side.
 
-> **Note:** Model weights (`dementia_detection_model_final.h5` and `best.pt`) are not included in this repository due to file size. Download them separately and place them in the project root.
+> **Note:** Model weights (`dementia_detection_model_final.h5` and `best.pt`) are not included in this repository due to file size. Download them separately and place them in `models/`.
 
 ## Tech Stack
 
