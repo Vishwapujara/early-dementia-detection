@@ -19,6 +19,9 @@ env/
 # Jupyter checkpoints
 .ipynb_checkpoints/
 
+# API runtime state (logged predictions)
+*.db
+
 # OS
 .DS_Store
 Thumbs.db

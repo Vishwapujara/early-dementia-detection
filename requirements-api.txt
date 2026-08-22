@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+numpy==1.26.4
+pandas
+scikit-learn
+pillow
+huggingface_hub
+tensorflow==2.18.0
+ultralytics
